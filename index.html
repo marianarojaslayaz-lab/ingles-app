@@ -5,22 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#7c3aed">
   <title>Speak Like a Native</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=__V__">
+  <style>
+    /* Puerta de inicio de sesión: va dentro de la página para que siempre se vea bien,
+       aunque el navegador tenga guardada una versión vieja de styles.css */
+    .gate { display: none; }
+    body.locked > header, body.locked > main, body.locked > nav { display: none !important; }
+    body.locked { padding: 0 !important; background: #0f172a !important; }
+    body.locked .gate {
+      display: flex; position: fixed; inset: 0; z-index: 1000; padding: 24px;
+      align-items: center; justify-content: center;
+      background: #0f172a; color: #f1f5f9;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .gate-box { width: 100%; max-width: 360px; text-align: left; }
+    .gate-kicker { margin: 0 0 14px; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: #94a3b8; }
+    .gate-box h1 { margin: 0 0 10px; font-size: 1.9rem; line-height: 1.15; font-weight: 700; color: #fff; }
+    .gate-sub { margin: 0 0 28px; color: #cbd5e1; line-height: 1.5; font-size: 1rem; }
+    .gate-btn {
+      display: block; width: 100%; padding: 15px 16px; border: 0; border-radius: 10px;
+      background: #fff; color: #0f172a; font: inherit; font-weight: 700; font-size: 1.02rem; cursor: pointer;
+    }
+    .gate-btn[hidden] { display: none; }
+    .gate-btn.gate-alt { margin-top: 10px; background: transparent; color: #e2e8f0; border: 1px solid #475569; }
+    .gate-msg { margin: 18px 0 0; min-height: 1.4em; color: #fbbf24; font-size: .95rem; }
+    .gate-msg:empty { display: none; }
+  </style>
 </head>
 <body class="locked">
 
-  <!-- PUERTA: primera pantalla, inicio de sesión -->
+  <!-- PUERTA: primera pantalla, inicio de sesión (sin nada de la app) -->
   <div class="gate" id="gate">
     <div class="gate-box">
-      <div class="gate-logo">🎤</div>
+      <p class="gate-kicker">Acceso privado</p>
       <h1>Speak Like a Native</h1>
-      <p class="gate-sub">Entra con tu cuenta de Google para practicar y guardar tu avance.</p>
-      <button class="btn teal wide big" id="gateBtn" type="button" hidden>Entrar con Google</button>
-      <button class="btn ghost wide" id="gateRetry" type="button" hidden>Reintentar</button>
+      <p class="gate-sub">Inicia sesión con tu cuenta de Google para continuar.</p>
+      <button class="gate-btn" id="gateBtn" type="button" hidden>Continuar con Google</button>
+      <button class="gate-btn gate-alt" id="gateRetry" type="button" hidden>Reintentar</button>
       <p class="gate-msg" id="gateMsg">Conectando…</p>
     </div>
   </div>
-
 
   <header class="top">
     <div>
@@ -123,13 +147,13 @@
     <button class="tab" data-view="yo"><span>👤</span>Yo</button>
   </nav>
 
-  <script src="peliculas.js"></script>
-  <script src="app.js"></script>
-  <script src="clases.js"></script>
-  <script src="avance.js"></script>
-  <script src="yo.js"></script>
-  <script src="puerta.js"></script>
-  <script src="firebase-config.js"></script>
-  <script type="module" src="nube.js"></script>
+  <script src="peliculas.js?v=__V__"></script>
+  <script src="app.js?v=__V__"></script>
+  <script src="clases.js?v=__V__"></script>
+  <script src="avance.js?v=__V__"></script>
+  <script src="yo.js?v=__V__"></script>
+  <script src="puerta.js?v=__V__"></script>
+  <script src="firebase-config.js?v=__V__"></script>
+  <script type="module" src="nube.js?v=__V__"></script>
 </body>
 </html>
