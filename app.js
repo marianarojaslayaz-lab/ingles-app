@@ -59,6 +59,7 @@ function store(key, value) {
   try {
     if (value === undefined) return JSON.parse(localStorage.getItem(key));
     localStorage.setItem(key, JSON.stringify(value));
+    if (typeof window.onLocalSave === "function") window.onLocalSave(key); // avisa a la nube
   } catch (e) { /* si el navegador no deja guardar, seguimos sin guardar */ }
   return null;
 }
@@ -328,9 +329,20 @@ function evaluate(expectedText, heardText) {
   return { marks, expected, score: Math.round((okCount / expected.length) * 100) };
 }
 
+// Lleva la cuenta de las palabras que fallas (suben al fallar, bajan al acertar)
+function registrarDebiles(expected, marks) {
+  const deb = store("inglesDebiles") || {};
+  expected.forEach((w, i) => {
+    if (marks[i]) { if (deb[w]) { deb[w]--; if (deb[w] <= 0) delete deb[w]; } }
+    else deb[w] = (deb[w] || 0) + 1;
+  });
+  store("inglesDebiles", deb);
+}
+
 function showResult(heardText) {
   const l = curLine();
-  const { marks, score } = evaluate(l.en, heardText);
+  const { marks, score, expected } = evaluate(l.en, heardText);
+  registrarDebiles(expected, marks);
 
   $("pResult").hidden = false;
   const scoreEl = $("pScore");

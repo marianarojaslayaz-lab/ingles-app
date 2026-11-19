@@ -380,7 +380,8 @@ function clSentenceCard(topic, s, i) {
   mic.addEventListener("click", () => {
     clListen(mic, status, (alts) => {
       const best = alts.reduce((a, b) => evaluate(s.en, b).score > evaluate(s.en, a).score ? b : a);
-      const { marks, score } = evaluate(s.en, best);
+      const { marks, score, expected } = evaluate(s.en, best);
+      registrarDebiles(expected, marks);
       clSaveScore(topic.id, "s" + i, score);
       markPracticed();
 
