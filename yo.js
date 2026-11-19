@@ -131,7 +131,7 @@ window.addEventListener("nube-estado", (ev) => {
 });
 // Si la parte de la nube no llega a cargar (sin internet, o abierta desde un archivo), no dejar "Conectando…" para siempre
 setTimeout(() => {
-  if (!window.nubeEstado) { window.nubeEstado = { estado: "sin-conexion" }; yoRender(); }
+  if (!window.nubeEstado) window.dispatchEvent(new CustomEvent("nube-estado", { detail: { estado: "sin-conexion" } }));
 }, 4000);
 window.addEventListener("avance-actualizado", yoRender);
 document.querySelectorAll('.tab[data-view="yo"]').forEach(t => t.addEventListener("click", yoRender));

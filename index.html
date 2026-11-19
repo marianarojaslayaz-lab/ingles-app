@@ -7,7 +7,20 @@
   <title>Speak Like a Native</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="locked">
+
+  <!-- PUERTA: primera pantalla, inicio de sesión -->
+  <div class="gate" id="gate">
+    <div class="gate-box">
+      <div class="gate-logo">🎤</div>
+      <h1>Speak Like a Native</h1>
+      <p class="gate-sub">Entra con tu cuenta de Google para practicar y guardar tu avance.</p>
+      <button class="btn teal wide big" id="gateBtn" type="button" hidden>Entrar con Google</button>
+      <button class="btn ghost wide" id="gateRetry" type="button" hidden>Reintentar</button>
+      <p class="gate-msg" id="gateMsg">Conectando…</p>
+    </div>
+  </div>
+
 
   <header class="top">
     <div>
@@ -115,6 +128,7 @@
   <script src="clases.js"></script>
   <script src="avance.js"></script>
   <script src="yo.js"></script>
+  <script src="puerta.js"></script>
   <script src="firebase-config.js"></script>
   <script type="module" src="nube.js"></script>
 </body>
