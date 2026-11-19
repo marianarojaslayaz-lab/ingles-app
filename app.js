@@ -253,7 +253,7 @@ function showResult(heardText) {
   $("pMsg").textContent =
       score >= 85 ? "🎉 ¡Excelente! Casi perfecto. Sigue con la siguiente."
     : score >= 55 ? "👍 Vas bien. Escucha otra vez las palabras en rojo y repite."
-    :               "💪 Tranquilo, es normal. Usa el botón Lento en Escenas y vuelve a intentar.";
+    :               "💪 No pasa nada, es normal. Usa el botón Lento en Escenas y vuelve a intentar.";
 
   const best = store("inglesMejor") || {};
   if (best[current] == null || score > best[current]) { best[current] = score; store("inglesMejor", best); }
