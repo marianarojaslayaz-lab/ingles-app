@@ -1,22 +1,11 @@
 "use strict";
 
 /* =====================================================
-   DATOS: escenas (diálogos originales inspirados en películas),
-   palabras y verbos. Para agregar más, copia una línea y cámbiala.
+   DATOS: (las frases de películas están en peliculas.js)
+   Aquí van las palabras y verbos de cada día. Copia una línea para agregar más.
    ===================================================== */
 
-const SCENES = [
-  { movie: "Inspirada en Toy Story", en: "I will always be your friend.", es: "Siempre seré tu amigo.", tip: "«friend» suena «frend». La «i» casi no se oye." },
-  { movie: "Inspirada en Titanic", en: "I feel like I am flying!", es: "¡Siento que estoy volando!", tip: "«flying» = «fláing». Alarga el sonido «ai»." },
-  { movie: "Inspirada en Frozen", en: "I am free now.", es: "Ahora soy libre.", tip: "«free» lleva una «r» suave, con la lengua atrás y sin vibrar." },
-  { movie: "Inspirada en Harry Potter", en: "Wait, I am a wizard?", es: "Espera, ¿soy un mago?", tip: "Sube la voz al final porque es una pregunta." },
-  { movie: "Inspirada en Buscando a Nemo", en: "We can find him together.", es: "Podemos encontrarlo juntos.", tip: "«the» y «th»: pon la punta de la lengua entre los dientes." },
-  { movie: "Inspirada en Friends", en: "Hey, how are you doing?", es: "Oye, ¿cómo estás?", tip: "Los nativos dicen «ha-ya-yu-dúin». Todo junto y rápido." },
-  { movie: "Inspirada en El Rey León", en: "You are stronger than you think.", es: "Eres más fuerte de lo que crees.", tip: "«think» empieza con «th»: lengua entre los dientes, soplando suave." },
-  { movie: "Inspirada en Shrek", en: "Are we there yet?", es: "¿Ya llegamos?", tip: "«there» y «yet» se juntan: «ar-wi-dér-yet»." },
-  { movie: "Inspirada en Star Wars", en: "I need your help, please.", es: "Necesito tu ayuda, por favor.", tip: "«help» termina con «p» suave, casi sin soltar aire." },
-  { movie: "Inspirada en E.T.", en: "I just want to go home.", es: "Solo quiero volver a casa.", tip: "«want to» suena «uana». Así hablan los nativos." }
-];
+
 
 const WORDS = [
   { en: "happy", es: "feliz", ex: "I am happy today.", exEs: "Estoy feliz hoy." },
@@ -127,13 +116,32 @@ function speak(text, rate = 0.95, onWord, onEnd) {
 }
 
 /* =====================================================
+   FRASES DE PELÍCULAS (datos en peliculas.js)
+   Posición actual: género (g), texto (it) y línea (ln)
+   ===================================================== */
+
+let pos = store("inglesPos") || { g: 0, it: 0 };
+if (!pos || typeof pos.g !== "number" || !GENRES[pos.g]) pos = { g: 0, it: 0 };
+if (pos.it >= GENRES[pos.g].items.length || pos.it < 0) pos.it = 0;
+let ln = 0;                       // línea actual en la pantalla Pronunciar
+let playToken = 0;                // sirve para cortar la lectura si cambias de pantalla
+
+const genre = () => GENRES[pos.g];
+const item = () => genre().items[pos.it];
+const lineKey = (g, it, l) => `${GENRES[g].id}:${it}:${l}`;
+
+function bestScore(g, it, l) { return (store("inglesMejor2") || {})[lineKey(g, it, l)]; }
+function itemDone(g, it) {
+  return GENRES[g].items[it].lines.every((_, l) => (bestScore(g, it, l) || 0) >= 85);
+}
+function genreDone(g) { return GENRES[g].items.filter((_, i) => itemDone(g, i)).length; }
+
+/* =====================================================
    NAVEGACIÓN
    ===================================================== */
 
-let current = Number(store("inglesEscena")) || 0;
-if (current >= SCENES.length || current < 0) current = 0;
-
 function showView(name) {
+  playToken++;
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === name));
   if ("speechSynthesis" in window) speechSynthesis.cancel();
@@ -141,58 +149,135 @@ function showView(name) {
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showView(t.dataset.view)));
 
-function setScene(i) {
-  current = (i + SCENES.length) % SCENES.length;
-  store("inglesEscena", current);
+function goTo(g, it, l = 0) {
+  playToken++;
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  pos = { g, it };
+  ln = l;
+  store("inglesPos", pos);
+  renderGenres();
   renderShadow();
   renderSpeak();
 }
 
+function nextItem(step) {
+  const n = genre().items.length;
+  goTo(pos.g, (pos.it + step + n) % n, 0);
+}
+
 /* =====================================================
-   PANTALLA 1: SHADOWING
+   PANTALLA 1: ESCENAS (shadowing)
    ===================================================== */
 
-function renderShadow(highlightIndex = -1) {
-  const s = SCENES[current];
-  $("sMovie").textContent = s.movie;
-  $("sEs").textContent = s.es;
-  $("sTip").textContent = "💡 " + s.tip;
-  $("sCount").textContent = `${current + 1} / ${SCENES.length}`;
+function renderGenres() {
+  const bar = $("genreBar");
+  bar.textContent = "";
+  GENRES.forEach((g, gi) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "gchip" + (gi === pos.g ? " active" : "");
+    b.textContent = `${g.icon} ${g.name}`;
+    const done = genreDone(gi);
+    if (done > 0) {
+      const sm = document.createElement("small");
+      sm.textContent = ` ${done}/${g.items.length}`;
+      b.appendChild(sm);
+    }
+    b.addEventListener("click", () => goTo(gi, 0, 0));
+    bar.appendChild(b);
+  });
+  const active = bar.querySelector(".active");
+  if (active && active.scrollIntoView) active.scrollIntoView({ block: "nearest", inline: "center" });
+}
 
+function fillWords(box, text) {
   // Cada palabra va en su propio <span> para poder resaltarla mientras suena
-  const box = $("sPhrase");
   box.textContent = "";
-  let pos = 0;
-  s.en.split(/(\s+)/).forEach(part => {
-    if (/^\s+$/.test(part)) { box.appendChild(document.createTextNode(part)); pos += part.length; return; }
+  let p = 0;
+  text.split(/(\s+)/).forEach(part => {
+    if (/^\s+$/.test(part)) { box.appendChild(document.createTextNode(part)); p += part.length; return; }
     const span = document.createElement("span");
     span.textContent = part;
-    span.dataset.start = pos;
-    if (pos === highlightIndex) span.className = "now";
+    span.dataset.start = p;
     box.appendChild(span);
-    pos += part.length;
+    p += part.length;
   });
 }
 
-function playScene(rate) {
-  markPracticed();
-  speak(SCENES[current].en, rate,
-    (charIndex) => {
-      document.querySelectorAll("#sPhrase span").forEach(sp =>
-        sp.classList.toggle("now", Number(sp.dataset.start) === charIndex));
-    },
-    () => document.querySelectorAll("#sPhrase span").forEach(sp => sp.classList.remove("now"))
-  );
+function renderShadow() {
+  const it = item();
+  $("sMovie").textContent = `${genre().icon} ${genre().name} · ${it.type}`;
+  $("sTip").textContent = it.tip ? "💡 " + it.tip : "";
+  $("sCount").textContent = `${pos.it + 1} / ${genre().items.length}` + (itemDone(pos.g, pos.it) ? " ✅" : "");
+
+  const box = $("sLines");
+  box.textContent = "";
+  it.lines.forEach((l, i) => {
+    const row = document.createElement("div");
+    row.className = "line";
+    row.dataset.i = i;
+    if (l.who) {
+      const who = document.createElement("span");
+      who.className = "who";
+      who.textContent = l.who;
+      row.appendChild(who);
+    }
+    const body = document.createElement("div");
+    body.className = "lbody";
+    const en = document.createElement("p");
+    en.className = "phrase" + (it.lines.length > 1 ? " small" : "");
+    fillWords(en, l.en);
+    const es = document.createElement("p");
+    es.className = "translation";
+    es.textContent = l.es;
+    body.append(en, es);
+    row.appendChild(body);
+    row.addEventListener("click", () => playLines([i], 0.95));
+    box.appendChild(row);
+  });
+  $("sHint").hidden = it.lines.length < 2;
 }
 
-$("sPlay").addEventListener("click", () => playScene(0.95));
-$("sSlow").addEventListener("click", () => playScene(0.6));
-$("sPrev").addEventListener("click", () => setScene(current - 1));
-$("sNext").addEventListener("click", () => setScene(current + 1));
-$("sGoSpeak").addEventListener("click", () => showView("speak"));
+function clearHighlights() {
+  document.querySelectorAll("#sLines .phrase span").forEach(sp => sp.classList.remove("now"));
+  document.querySelectorAll("#sLines .line").forEach(r => r.classList.remove("playing"));
+}
+
+// Lee una o varias líneas, una tras otra
+function playLines(indexes, rate) {
+  markPracticed();
+  const token = ++playToken;
+  const lines = item().lines;
+  clearHighlights();
+
+  const playAt = (k) => {
+    if (token !== playToken) return;
+    if (k >= indexes.length) { clearHighlights(); return; }
+    const i = indexes[k];
+    const row = document.querySelector(`#sLines .line[data-i="${i}"]`);
+    clearHighlights();
+    if (row) row.classList.add("playing");
+    speak(lines[i].en, rate,
+      (charIndex) => {
+        if (token !== playToken || !row) return;
+        row.querySelectorAll(".phrase span").forEach(sp =>
+          sp.classList.toggle("now", Number(sp.dataset.start) === charIndex));
+      },
+      () => { setTimeout(() => playAt(k + 1), 250); }
+    );
+  };
+  playAt(0);
+}
+
+const allLines = () => item().lines.map((_, i) => i);
+$("sPlay").addEventListener("click", () => playLines(allLines(), 0.95));
+$("sSlow").addEventListener("click", () => playLines(allLines(), 0.6));
+$("sPrev").addEventListener("click", () => nextItem(-1));
+$("sNext").addEventListener("click", () => nextItem(1));
+$("sGoSpeak").addEventListener("click", () => { ln = 0; renderSpeak(); showView("speak"); });
 
 /* =====================================================
-   PANTALLA 2: PRONUNCIACIÓN
+   PANTALLA 2: PRONUNCIACIÓN (línea por línea)
    ===================================================== */
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -203,15 +288,30 @@ function normalize(text) {
   return text.toLowerCase().replace(/[^a-z0-9'\s]/g, " ").split(/\s+/).filter(Boolean);
 }
 
+const curLine = () => item().lines[ln];
+
 function renderSpeak() {
-  const s = SCENES[current];
-  $("pMovie").textContent = s.movie;
-  $("pPhrase").textContent = s.en;
-  $("pEs").textContent = s.es;
+  const it = item();
+  const l = curLine();
+  $("pMovie").textContent = `${genre().icon} ${genre().name} · ${it.type}` +
+    (it.lines.length > 1 ? ` · línea ${ln + 1}/${it.lines.length}` : "");
+  $("pPhrase").textContent = (l.who ? l.who + ": " : "") + l.en;
+  $("pEs").textContent = l.es;
   $("pResult").hidden = true;
   $("pStatus").textContent = "Toca el micrófono y di la frase en voz alta.";
-  const best = (store("inglesMejor") || {})[current];
+  const best = bestScore(pos.g, pos.it, ln);
   if (best != null) $("pStatus").textContent += ` (Tu mejor puntaje aquí: ${best}%)`;
+}
+
+// Avanzar o retroceder de línea; al llegar al borde pasa al texto vecino
+function stepLine(step) {
+  const lines = item().lines;
+  const target = ln + step;
+  if (target >= 0 && target < lines.length) { ln = target; renderSpeak(); return; }
+  const n = genre().items.length;
+  const it = (pos.it + step + n) % n;
+  const l = step > 0 ? 0 : GENRES[pos.g].items[it].lines.length - 1;
+  goTo(pos.g, it, l);
 }
 
 function evaluate(expectedText, heardText) {
@@ -229,8 +329,8 @@ function evaluate(expectedText, heardText) {
 }
 
 function showResult(heardText) {
-  const s = SCENES[current];
-  const { marks, score } = evaluate(s.en, heardText);
+  const l = curLine();
+  const { marks, score } = evaluate(l.en, heardText);
 
   $("pResult").hidden = false;
   const scoreEl = $("pScore");
@@ -238,7 +338,7 @@ function showResult(heardText) {
   scoreEl.className = "score " + (score >= 85 ? "good" : score >= 55 ? "mid" : "low");
 
   // Palabras de la frase original, verdes o rojas
-  const shown = s.en.split(/\s+/);
+  const shown = l.en.split(/\s+/);
   const wordsEl = $("pWords");
   wordsEl.textContent = "";
   shown.forEach((w, i) => {
@@ -255,8 +355,10 @@ function showResult(heardText) {
     : score >= 55 ? "👍 Vas bien. Escucha otra vez las palabras en rojo y repite."
     :               "💪 No pasa nada, es normal. Usa el botón Lento en Escenas y vuelve a intentar.";
 
-  const best = store("inglesMejor") || {};
-  if (best[current] == null || score > best[current]) { best[current] = score; store("inglesMejor", best); }
+  const all = store("inglesMejor2") || {};
+  const k = lineKey(pos.g, pos.it, ln);
+  if (all[k] == null || score > all[k]) { all[k] = score; store("inglesMejor2", all); }
+  renderGenres();
   markPracticed();
 }
 
@@ -281,8 +383,8 @@ function startListening() {
   recognition.onresult = (e) => {
     // De las alternativas, usamos la que más se parece a la frase esperada
     const alts = Array.from(e.results[0]).map(a => a.transcript);
-    const best = alts.reduce((a, b) =>
-      evaluate(SCENES[current].en, b).score > evaluate(SCENES[current].en, a).score ? b : a);
+    const expected = curLine().en;
+    const best = alts.reduce((a, b) => evaluate(expected, b).score > evaluate(expected, a).score ? b : a);
     showResult(best);
     $("pStatus").textContent = "Toca el micrófono para intentar otra vez.";
   };
@@ -304,9 +406,9 @@ function startListening() {
 }
 
 $("pMic").addEventListener("click", startListening);
-$("pListen").addEventListener("click", () => speak(SCENES[current].en, 0.9));
-$("pPrev").addEventListener("click", () => setScene(current - 1));
-$("pNext").addEventListener("click", () => setScene(current + 1));
+$("pListen").addEventListener("click", () => speak(curLine().en, 0.9));
+$("pPrev").addEventListener("click", () => stepLine(-1));
+$("pNext").addEventListener("click", () => stepLine(1));
 
 /* =====================================================
    PANTALLA 3: HOY APRENDO
@@ -374,6 +476,7 @@ function renderToday() {
    INICIO
    ===================================================== */
 
+renderGenres();
 renderShadow();
 renderSpeak();
 renderToday();

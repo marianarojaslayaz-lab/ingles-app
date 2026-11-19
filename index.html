@@ -20,11 +20,13 @@
   <main>
     <!-- PANTALLA 1: SHADOWING -->
     <section id="view-shadow" class="view active">
+      <div class="genre-bar" id="genreBar" aria-label="Géneros de película"></div>
+
       <div class="card scene">
         <div class="chip" id="sMovie"></div>
-        <p class="phrase" id="sPhrase"></p>
-        <p class="translation" id="sEs"></p>
+        <div id="sLines"></div>
         <p class="tip" id="sTip"></p>
+        <p class="hint" id="sHint" hidden>Toca una línea para oírla sola.</p>
       </div>
 
       <div class="how">
@@ -101,6 +103,7 @@
     <button class="tab" data-view="today"><span>📚</span>Hoy</button>
   </nav>
 
+  <script src="peliculas.js"></script>
   <script src="app.js"></script>
   <script src="clases.js"></script>
 </body>
