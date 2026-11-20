@@ -56,11 +56,19 @@ function yoFrases() {
   Object.keys(mejor).forEach(k => {
     if (mejor[k] >= 85) return;
     const [gid, it, l] = k.split(":");
+    if (gid.startsWith("dia.")) {
+      if (l !== "0") return;   // los trozos no se listan aparte
+      const ci = DIA.findIndex(c => "dia." + c.id === gid);
+      const o = ci >= 0 && DIA[ci].items[Number(it)];
+      if (o) out.push({ en: o.en, score: mejor[k], origen: DIA[ci].icon + " " + DIA[ci].name,
+        ir: () => { showView("dia"); irADia(ci, Number(it)); } });
+      return;
+    }
     const gi = GENRES.findIndex(g => g.id === gid);
     const linea = gi >= 0 && GENRES[gi].items[Number(it)] && GENRES[gi].items[Number(it)].lines[Number(l)];
     if (!linea) return;
     out.push({ en: linea.en, score: mejor[k], origen: GENRES[gi].icon + " " + GENRES[gi].name,
-      ir: () => { goTo(gi, Number(it), Number(l)); showView("speak"); } });
+      ir: () => { showView("practicar"); goTo(gi, Number(it), Number(l)); } });
   });
   const clases = store("inglesClases") || {};
   Object.keys(clases).forEach(tid => {

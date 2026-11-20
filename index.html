@@ -58,64 +58,35 @@
   </header>
 
   <main>
-    <!-- PANTALLA 1: SHADOWING -->
-    <section id="view-shadow" class="view active">
+    <!-- PANTALLA: PRACTICAR (películas, por género) -->
+    <section id="view-practicar" class="view active">
       <div class="genre-bar" id="genreBar" aria-label="Géneros de película"></div>
 
       <div class="card scene">
         <div class="chip" id="sMovie"></div>
         <div id="sLines"></div>
         <p class="tip" id="sTip"></p>
-        <p class="hint" id="sHint" hidden>Toca una línea para oírla sola.</p>
-      </div>
-
-      <div class="how">
-        <b>Cómo hacer shadowing:</b> 1) Escucha. 2) Escucha otra vez y repite en voz alta
-        <i>al mismo tiempo</i>, imitando el ritmo y la melodía.
       </div>
 
       <div class="row">
-        <button class="btn big pink" id="sPlay">🔊 Escuchar</button>
-        <button class="btn big orange" id="sSlow">🐢 Lento</button>
+        <button class="btn orange" id="sAll" type="button" hidden>🔊 Todo seguido</button>
+        <button class="btn ghost" id="sAllSlow" type="button" hidden>🐢 Todo lento</button>
       </div>
 
       <div class="row nav-row">
-        <button class="btn ghost" id="sPrev">← Anterior</button>
+        <button class="btn ghost" id="sPrev" type="button">← Anterior</button>
         <span class="counter" id="sCount"></span>
-        <button class="btn ghost" id="sNext">Siguiente →</button>
+        <button class="btn ghost" id="sNext" type="button">Siguiente →</button>
       </div>
 
-      <button class="btn wide teal" id="sGoSpeak">🎤 Ahora quiero que me corrijas</button>
+      <p class="note">Shadowing: escucha, y repite al mismo tiempo imitando el ritmo y la melodía. La corrección es aproximada: te dice si el navegador te entendió. Funciona mejor en Chrome (Android) o Safari (iPhone) y necesita internet.</p>
     </section>
 
-    <!-- PANTALLA 2: PRONUNCIACIÓN -->
-    <section id="view-speak" class="view">
-      <div class="card scene">
-        <div class="chip" id="pMovie"></div>
-        <p class="phrase" id="pPhrase"></p>
-        <p class="translation" id="pEs"></p>
-      </div>
-
-      <div class="row">
-        <button class="btn orange" id="pListen">🔊 Escuchar</button>
-        <button class="btn ghost" id="pPrev">←</button>
-        <button class="btn ghost" id="pNext">→</button>
-      </div>
-
-      <button class="mic" id="pMic" aria-label="Hablar">🎤</button>
-      <p class="status" id="pStatus">Toca el micrófono y di la frase en voz alta.</p>
-
-      <div class="card result" id="pResult" hidden>
-        <div class="score" id="pScore"></div>
-        <p class="words" id="pWords"></p>
-        <p class="heard" id="pHeard"></p>
-        <p class="msg" id="pMsg"></p>
-      </div>
-
-      <p class="note">
-        Esta corrección es aproximada: te dice si el navegador te entendió.
-        Funciona mejor en Chrome (Android) o Safari (iPhone) y necesita internet.
-      </p>
+    <!-- PANTALLA: DÍA A DÍA (oraciones largas) -->
+    <section id="view-dia" class="view">
+      <div class="genre-bar" id="diaBar" aria-label="Categorías"></div>
+      <p class="cl-intro">Oraciones largas como las diría alguien de verdad. Toca 🔊, repite, y luego 🎤. Si es muy larga, practícala por trozos.</p>
+      <div id="diaList"></div>
     </section>
 
     <!-- PANTALLA: CLASES -->
@@ -143,16 +114,18 @@
   </main>
 
   <nav class="tabs">
-    <button class="tab active" data-view="shadow"><span>🎬</span>Escenas</button>
-    <button class="tab" data-view="speak"><span>🎤</span>Pronunciar</button>
+    <button class="tab active" data-view="practicar"><span>🎤</span>Practicar</button>
+    <button class="tab" data-view="dia"><span>🗣️</span>Día a día</button>
     <button class="tab" data-view="clases"><span>🎓</span>Clases</button>
     <button class="tab" data-view="today"><span>📚</span>Hoy</button>
     <button class="tab" data-view="yo"><span>👤</span>Yo</button>
   </nav>
 
   <script src="peliculas.js?v=__V__"></script>
+  <script src="dia.js?v=__V__"></script>
   <script src="app.js?v=__V__"></script>
   <script src="clases.js?v=__V__"></script>
+  <script src="practica.js?v=__V__"></script>
   <script src="avance.js?v=__V__"></script>
   <script src="yo.js?v=__V__"></script>
   <script src="puerta.js?v=__V__"></script>

@@ -117,29 +117,10 @@ function speak(text, rate = 0.95, onWord, onEnd) {
 }
 
 /* =====================================================
-   FRASES DE PELÍCULAS (datos en peliculas.js)
-   Posición actual: género (g), texto (it) y línea (ln)
+   NAVEGACIÓN Y CORRECTOR (compartidos por todas las pantallas)
    ===================================================== */
 
-let pos = store("inglesPos") || { g: 0, it: 0 };
-if (!pos || typeof pos.g !== "number" || !GENRES[pos.g]) pos = { g: 0, it: 0 };
-if (pos.it >= GENRES[pos.g].items.length || pos.it < 0) pos.it = 0;
-let ln = 0;                       // línea actual en la pantalla Pronunciar
-let playToken = 0;                // sirve para cortar la lectura si cambias de pantalla
-
-const genre = () => GENRES[pos.g];
-const item = () => genre().items[pos.it];
-const lineKey = (g, it, l) => `${GENRES[g].id}:${it}:${l}`;
-
-function bestScore(g, it, l) { return (store("inglesMejor2") || {})[lineKey(g, it, l)]; }
-function itemDone(g, it) {
-  return GENRES[g].items[it].lines.every((_, l) => (bestScore(g, it, l) || 0) >= 85);
-}
-function genreDone(g) { return GENRES[g].items.filter((_, i) => itemDone(g, i)).length; }
-
-/* =====================================================
-   NAVEGACIÓN
-   ===================================================== */
+let playToken = 0;   // sirve para cortar la lectura en voz alta si cambias de pantalla
 
 function showView(name) {
   playToken++;
@@ -150,169 +131,10 @@ function showView(name) {
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showView(t.dataset.view)));
 
-function goTo(g, it, l = 0) {
-  playToken++;
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
-  pos = { g, it };
-  ln = l;
-  store("inglesPos", pos);
-  renderGenres();
-  renderShadow();
-  renderSpeak();
-}
-
-function nextItem(step) {
-  const n = genre().items.length;
-  goTo(pos.g, (pos.it + step + n) % n, 0);
-}
-
-/* =====================================================
-   PANTALLA 1: ESCENAS (shadowing)
-   ===================================================== */
-
-function renderGenres() {
-  const bar = $("genreBar");
-  bar.textContent = "";
-  GENRES.forEach((g, gi) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "gchip" + (gi === pos.g ? " active" : "");
-    b.textContent = `${g.icon} ${g.name}`;
-    const done = genreDone(gi);
-    if (done > 0) {
-      const sm = document.createElement("small");
-      sm.textContent = ` ${done}/${g.items.length}`;
-      b.appendChild(sm);
-    }
-    b.addEventListener("click", () => goTo(gi, 0, 0));
-    bar.appendChild(b);
-  });
-  const active = bar.querySelector(".active");
-  if (active && active.scrollIntoView) active.scrollIntoView({ block: "nearest", inline: "center" });
-}
-
-function fillWords(box, text) {
-  // Cada palabra va en su propio <span> para poder resaltarla mientras suena
-  box.textContent = "";
-  let p = 0;
-  text.split(/(\s+)/).forEach(part => {
-    if (/^\s+$/.test(part)) { box.appendChild(document.createTextNode(part)); p += part.length; return; }
-    const span = document.createElement("span");
-    span.textContent = part;
-    span.dataset.start = p;
-    box.appendChild(span);
-    p += part.length;
-  });
-}
-
-function renderShadow() {
-  const it = item();
-  $("sMovie").textContent = `${genre().icon} ${genre().name} · ${it.type}`;
-  $("sTip").textContent = it.tip ? "💡 " + it.tip : "";
-  $("sCount").textContent = `${pos.it + 1} / ${genre().items.length}` + (itemDone(pos.g, pos.it) ? " ✅" : "");
-
-  const box = $("sLines");
-  box.textContent = "";
-  it.lines.forEach((l, i) => {
-    const row = document.createElement("div");
-    row.className = "line";
-    row.dataset.i = i;
-    if (l.who) {
-      const who = document.createElement("span");
-      who.className = "who";
-      who.textContent = l.who;
-      row.appendChild(who);
-    }
-    const body = document.createElement("div");
-    body.className = "lbody";
-    const en = document.createElement("p");
-    en.className = "phrase" + (it.lines.length > 1 ? " small" : "");
-    fillWords(en, l.en);
-    const es = document.createElement("p");
-    es.className = "translation";
-    es.textContent = l.es;
-    body.append(en, es);
-    row.appendChild(body);
-    row.addEventListener("click", () => playLines([i], 0.95));
-    box.appendChild(row);
-  });
-  $("sHint").hidden = it.lines.length < 2;
-}
-
-function clearHighlights() {
-  document.querySelectorAll("#sLines .phrase span").forEach(sp => sp.classList.remove("now"));
-  document.querySelectorAll("#sLines .line").forEach(r => r.classList.remove("playing"));
-}
-
-// Lee una o varias líneas, una tras otra
-function playLines(indexes, rate) {
-  markPracticed();
-  const token = ++playToken;
-  const lines = item().lines;
-  clearHighlights();
-
-  const playAt = (k) => {
-    if (token !== playToken) return;
-    if (k >= indexes.length) { clearHighlights(); return; }
-    const i = indexes[k];
-    const row = document.querySelector(`#sLines .line[data-i="${i}"]`);
-    clearHighlights();
-    if (row) row.classList.add("playing");
-    speak(lines[i].en, rate,
-      (charIndex) => {
-        if (token !== playToken || !row) return;
-        row.querySelectorAll(".phrase span").forEach(sp =>
-          sp.classList.toggle("now", Number(sp.dataset.start) === charIndex));
-      },
-      () => { setTimeout(() => playAt(k + 1), 250); }
-    );
-  };
-  playAt(0);
-}
-
-const allLines = () => item().lines.map((_, i) => i);
-$("sPlay").addEventListener("click", () => playLines(allLines(), 0.95));
-$("sSlow").addEventListener("click", () => playLines(allLines(), 0.6));
-$("sPrev").addEventListener("click", () => nextItem(-1));
-$("sNext").addEventListener("click", () => nextItem(1));
-$("sGoSpeak").addEventListener("click", () => { ln = 0; renderSpeak(); showView("speak"); });
-
-/* =====================================================
-   PANTALLA 2: PRONUNCIACIÓN (línea por línea)
-   ===================================================== */
-
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognizing = false;
-let recognition = null;
 
 function normalize(text) {
   return text.toLowerCase().replace(/[^a-z0-9'\s]/g, " ").split(/\s+/).filter(Boolean);
-}
-
-const curLine = () => item().lines[ln];
-
-function renderSpeak() {
-  const it = item();
-  const l = curLine();
-  $("pMovie").textContent = `${genre().icon} ${genre().name} · ${it.type}` +
-    (it.lines.length > 1 ? ` · línea ${ln + 1}/${it.lines.length}` : "");
-  $("pPhrase").textContent = (l.who ? l.who + ": " : "") + l.en;
-  $("pEs").textContent = l.es;
-  $("pResult").hidden = true;
-  $("pStatus").textContent = "Toca el micrófono y di la frase en voz alta.";
-  const best = bestScore(pos.g, pos.it, ln);
-  if (best != null) $("pStatus").textContent += ` (Tu mejor puntaje aquí: ${best}%)`;
-}
-
-// Avanzar o retroceder de línea; al llegar al borde pasa al texto vecino
-function stepLine(step) {
-  const lines = item().lines;
-  const target = ln + step;
-  if (target >= 0 && target < lines.length) { ln = target; renderSpeak(); return; }
-  const n = genre().items.length;
-  const it = (pos.it + step + n) % n;
-  const l = step > 0 ? 0 : GENRES[pos.g].items[it].lines.length - 1;
-  goTo(pos.g, it, l);
 }
 
 function evaluate(expectedText, heardText) {
@@ -338,89 +160,6 @@ function registrarDebiles(expected, marks) {
   });
   store("inglesDebiles", deb);
 }
-
-function showResult(heardText) {
-  const l = curLine();
-  const { marks, score, expected } = evaluate(l.en, heardText);
-  registrarDebiles(expected, marks);
-
-  $("pResult").hidden = false;
-  const scoreEl = $("pScore");
-  scoreEl.textContent = score + "%";
-  scoreEl.className = "score " + (score >= 85 ? "good" : score >= 55 ? "mid" : "low");
-
-  // Palabras de la frase original, verdes o rojas
-  const shown = l.en.split(/\s+/);
-  const wordsEl = $("pWords");
-  wordsEl.textContent = "";
-  shown.forEach((w, i) => {
-    const span = document.createElement("span");
-    span.className = marks[i] ? "ok" : "bad";
-    span.textContent = w;
-    wordsEl.appendChild(span);
-    wordsEl.appendChild(document.createTextNode(" "));
-  });
-
-  $("pHeard").textContent = `El navegador entendió: “${heardText}”`;
-  $("pMsg").textContent =
-      score >= 85 ? "🎉 ¡Excelente! Casi perfecto. Sigue con la siguiente."
-    : score >= 55 ? "👍 Vas bien. Escucha otra vez las palabras en rojo y repite."
-    :               "💪 No pasa nada, es normal. Usa el botón Lento en Escenas y vuelve a intentar.";
-
-  const all = store("inglesMejor2") || {};
-  const k = lineKey(pos.g, pos.it, ln);
-  if (all[k] == null || score > all[k]) { all[k] = score; store("inglesMejor2", all); }
-  renderGenres();
-  markPracticed();
-}
-
-function startListening() {
-  if (!SR) {
-    $("pStatus").textContent = "Tu navegador no tiene reconocimiento de voz. Abre la app en Chrome (Android) o Safari (iPhone).";
-    return;
-  }
-  if (recognizing) { recognition.stop(); return; }
-
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
-  recognition = new SR();
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 3;
-
-  recognition.onstart = () => {
-    recognizing = true;
-    $("pMic").classList.add("listening");
-    $("pStatus").textContent = "Te escucho… habla ahora 🎧";
-  };
-  recognition.onresult = (e) => {
-    // De las alternativas, usamos la que más se parece a la frase esperada
-    const alts = Array.from(e.results[0]).map(a => a.transcript);
-    const expected = curLine().en;
-    const best = alts.reduce((a, b) => evaluate(expected, b).score > evaluate(expected, a).score ? b : a);
-    showResult(best);
-    $("pStatus").textContent = "Toca el micrófono para intentar otra vez.";
-  };
-  recognition.onerror = (e) => {
-    const msgs = {
-      "not-allowed": "No me diste permiso para usar el micrófono. Actívalo en los ajustes del navegador.",
-      "service-not-allowed": "No me diste permiso para usar el micrófono. Actívalo en los ajustes del navegador.",
-      "no-speech": "No escuché nada. Acércate al micrófono e inténtalo otra vez.",
-      "network": "Hace falta internet para corregir tu voz.",
-      "audio-capture": "No encuentro un micrófono en este dispositivo."
-    };
-    $("pStatus").textContent = msgs[e.error] || "Algo falló (" + e.error + "). Inténtalo otra vez.";
-  };
-  recognition.onend = () => {
-    recognizing = false;
-    $("pMic").classList.remove("listening");
-  };
-  try { recognition.start(); } catch (err) { /* ya estaba escuchando */ }
-}
-
-$("pMic").addEventListener("click", startListening);
-$("pListen").addEventListener("click", () => speak(curLine().en, 0.9));
-$("pPrev").addEventListener("click", () => stepLine(-1));
-$("pNext").addEventListener("click", () => stepLine(1));
 
 /* =====================================================
    PANTALLA 3: HOY APRENDO
@@ -488,8 +227,5 @@ function renderToday() {
    INICIO
    ===================================================== */
 
-renderGenres();
-renderShadow();
-renderSpeak();
 renderToday();
 renderStreak();
